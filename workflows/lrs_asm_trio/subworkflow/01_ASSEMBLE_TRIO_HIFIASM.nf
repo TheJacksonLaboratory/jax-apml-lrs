@@ -26,7 +26,7 @@
 
 process YAK {
     tag "$meta.id"
-    container 'quay.io/biocontainers/yak:0.1--h5bf99c6_3'
+    container 'quay.io/biocontainers/yak:0.1--h577a1d6_6'
     cpus   params.n_proc
     memory '128 GB'
 
@@ -75,7 +75,7 @@ process ASSEMBLY_HIFIASM_TRIO {
 
 process SAMTOOLS_HIFIASM_TRIO {
     tag "$meta.id"
-    container 'quay.io/biocontainers/samtools:1.19--h50ea8bc_1'
+    container 'quay.io/biocontainers/samtools:1.21--h50ea8bc_0'
 
     input:
     tuple val(meta), path(out_asm_gfa), path(pat_yak), path(mat_yak), path(out_asm_hap1), path(out_asm_hap2)

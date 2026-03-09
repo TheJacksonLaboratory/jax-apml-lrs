@@ -26,7 +26,7 @@
 
 process CALL_SVS_DELLY_LR {
     tag "$meta.id"
-    container 'quay.io/biocontainers/delly:1.2.6--hb7e2ac5_1'
+    container 'quay.io/biocontainers/delly:1.2.8--hf9970c3_0'
     cpus   params.NTHREAD
     memory '24 GB'
 

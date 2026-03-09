@@ -22,7 +22,7 @@
 
 process CALL_CNVS_HIFICNV {
     tag "$meta.id"
-    container 'quay.io/pacbio/hificnv:1.0.0_build1'
+    container 'quay.io/pacbio/hificnv:1.0.1_build1'
 
     input:
     path  excl_regions_file

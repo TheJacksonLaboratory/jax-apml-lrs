@@ -43,8 +43,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 OUTDIR="${SCRIPT_DIR}/refs"
-CONTAINER_RUNTIME="docker"
-SAMTOOLS_IMAGE="quay.io/biocontainers/samtools:1.19--h50ea8bc_1"
+CONTAINER_RUNTIME="apptainer"
+SAMTOOLS_IMAGE="quay.io/biocontainers/samtools:1.21--h50ea8bc_0"
 
 # Release tag where the SVAFotate BED is hosted as a GitHub Release asset.
 # Update this if a new release is published.
@@ -86,12 +86,14 @@ done
 # ---------------------------------------------------------------------------
 # Validate container runtime
 # ---------------------------------------------------------------------------
-if [[ "$CONTAINER_RUNTIME" != "docker" && "$CONTAINER_RUNTIME" != "singularity" ]]; then
-    err "--container-runtime must be 'docker' or 'singularity'"
+if [[ "$CONTAINER_RUNTIME" != "docker" && "$CONTAINER_RUNTIME" != "singularity" && "$CONTAINER_RUNTIME" != "apptainer" ]]; then
+    err "--container-runtime must be 'docker', 'singularity', or 'apptainer'"
     exit 1
 fi
 
-if ! command -v "$CONTAINER_RUNTIME" &>/dev/null; then
+APPTAINER_BIN=/cm/local/apps/apptainer/current/bin/apptainer
+[[ "$CONTAINER_RUNTIME" == "apptainer" && -x "$APPTAINER_BIN" ]] && CONTAINER_RUNTIME="$APPTAINER_BIN"
+if ! command -v "$CONTAINER_RUNTIME" &>/dev/null && [[ ! -x "$CONTAINER_RUNTIME" ]]; then
     err "'$CONTAINER_RUNTIME' not found. Please install it or specify --container-runtime."
     exit 1
 fi
@@ -119,8 +121,10 @@ run_samtools_faidx() {
             -v "${fasta_dir}:/data" \
             "$SAMTOOLS_IMAGE" \
             samtools faidx "/data/${fasta_file}"
+    elif [[ "$CONTAINER_RUNTIME" == "singularity" ]]; then
+        singularity exec
     else
-        singularity exec \
+        $CONTAINER_RUNTIME exec \
             --bind "${fasta_dir}:/data" \
             "docker://${SAMTOOLS_IMAGE}" \
             samtools faidx "/data/${fasta_file}"
@@ -181,6 +185,37 @@ else
     info "Downloading SVAFotate BED from GitHub Release ${RELEASE_TAG} (~451 MB)..."
     wget -c --show-progress -O "$SVAFOTATE_BED" "$SVAFOTATE_URL"
     info "Download complete."
+fi
+
+# ---------------------------------------------------------------------------
+# 4. SvAnna Apptainer image
+# ---------------------------------------------------------------------------
+section "[ 4 / 5 ]  SvAnna Apptainer image (svanna_v1.0.4.sif)"
+
+SVANNA_SIF="${OUTDIR}/svanna_v1.0.4.sif"
+SVANNA_URL="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/svanna_v1.0.4.sif"
+
+if [[ -f "$SVANNA_SIF" ]]; then
+    info "svanna_v1.0.4.sif already exists — skipping download."
+else
+    info "Downloading SvAnna Apptainer image (~1.1 GB, this may take a while)..."
+    wget -c --show-progress -O "$SVANNA_SIF" "$SVANNA_URL"
+    info "Download complete."
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Bundled reference files (small files included in the repo)
+# ---------------------------------------------------------------------------
+section "[ 5 / 5 ]  Bundled reference files"
+
+BUNDLED_REFS="${SCRIPT_DIR}/refs"
+
+if [[ -d "$BUNDLED_REFS" ]]; then
+    info "Copying bundled reference files from repo..."
+    cp "${BUNDLED_REFS}/"* "$OUTDIR/"
+    info "Bundled reference files copied."
+else
+    warn "Bundled refs directory not found at ${BUNDLED_REFS} — skipping."
 fi
 
 # ---------------------------------------------------------------------------

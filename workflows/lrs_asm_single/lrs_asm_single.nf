@@ -59,8 +59,10 @@ include { SPLIT_SMALL_VARIANTS_PAV;
           SPLIT_SV_PAV;
           INDEX_SV_PAV;
           CONCAT_SV_PAV                                } from './subworkflow/03_SPLIT_PAV_VARIANT_SIZE.nf'
-include { PRIORITIZE_BY_SVANNA;
-          RSCRIPT_PROCESS_SVANNA_RESULT                } from './subworkflow/04_PRIORITIZE_SV_SVANNA.nf'
+include { ANNOTATE_SVS_SVAFOTATE                          } from './subworkflow/04_ANNOTATE_SV_SVAFOTATE.nf'
+include { PRIORITIZE_BY_SVANNA_UNFILTERED;
+          PRIORITIZE_BY_SVANNA;
+          RSCRIPT_PROCESS_SVANNA_RESULT                } from './subworkflow/05_PRIORITIZE_SV_SVANNA.nf'
 
 /*
 ========================================================================================
@@ -148,9 +150,23 @@ workflow {
     // ---------------------------------------------------------------------------
     // 04 Phenotype-driven SV prioritization
     // ---------------------------------------------------------------------------
+    annotate_svs_svafotate_out = ANNOTATE_SVS_SVAFOTATE(
+        concat_sv_pav_out.out_concat_sv_vcf,
+        refID,
+        params.svafotate.overlap,
+        file(params.svafotate.svafotate_bed),
+        params.svafotate.cpus
+    )
+
+    prioritize_by_svanna_unfiltered_out = PRIORITIZE_BY_SVANNA_UNFILTERED(
+        input_check_out.bams,
+        concat_sv_pav_out.out_concat_sv_vcf,
+        refID
+    )
+
     prioritize_by_svanna_out = PRIORITIZE_BY_SVANNA(
         input_check_out.bams,
-        concat_small_variants_pav_out.out_small_variant_vcf,
+        annotate_svs_svafotate_out.svafotate_filter_out,
         refID
     )
 
@@ -171,15 +187,15 @@ workflow {
 
     call_svs_pav_out.out_vcf                                     >> 'call_svs_pav'
 
-    split_small_variants_pav_out.out_splitted_vcf                >> 'split_small_variants_pav'
-    index_small_variants_pav_out.out_small_variant_vcf_indexed   >> 'index_small_variants_pav'
     concat_small_variants_pav_out.out_small_variant_vcf          >> 'concat_small_variants_pav'
 
-    split_sv_pav_out.out_splitted_vcf                            >> 'split_sv_pav'
-    index_sv_pav_out.out_ins_del_vcf_gz                          >> 'index_sv_pav'
     concat_sv_pav_out.out_concat_sv_vcf                          >> 'concat_sv_pav'
 
-    prioritize_by_svanna_out.out_svanna_csv                      >> 'prioritize_by_svanna'
+    annotate_svs_svafotate_out.svafotate_annotate_out            >> 'annotate_svs_svafotate'
+    annotate_svs_svafotate_out.svafotate_filter_out                >> 'filter_svs_svafotate'
+
+    prioritize_by_svanna_unfiltered_out.out_svanna_unfiltered_csv  >> 'prioritize_by_svanna_unfiltered'
+    prioritize_by_svanna_out.out_svanna_csv                        >> 'prioritize_by_svanna'
     rscript_process_svanna_result_out.out_csv                    >> 'rscript_process_svanna_result'
 }
 
@@ -191,57 +207,52 @@ workflow {
 
 output {
     'assembly_hifiasm' {
-        path { meta, out_file, out_file_gfa, out_file_hap1_gfa, out_file_hap2_gfa -> "${params.outputDir}${meta.id}/hifiasm" }
+        path { meta, out_file, out_file_gfa, out_file_hap1_gfa, out_file_hap2_gfa -> "${params.outputDir}${meta.id}/asm/${params.runDate}/hifiasm" }
         mode 'copy'
         overwrite false
     }
     'samtools_hifiasm' {
-        path { meta, out_file_index -> "${params.outputDir}${meta.id}/hifiasm" }
+        path { meta, out_file_index -> "${params.outputDir}${meta.id}/asm/${params.runDate}/hifiasm" }
         mode 'copy'
         overwrite false
     }
     'call_svs_pav' {
-        path { meta, pav_vcf_gz_rid, pav_vcf_gz_tbi_rid -> "${params.outputDir}${meta.id}/pav" }
-        mode 'copy'
-        overwrite false
-    }
-    'split_small_variants_pav' {
-        path { meta, pav_snvs_vcf, pav_indels_vcf, pav_indels50bp_vcf -> "${params.outputDir}${meta.id}/pav" }
-        mode 'copy'
-        overwrite false
-    }
-    'index_small_variants_pav' {
-        path { meta, pav_snvs_vcf_gz, pav_snvs_vcf_gz_tbi, pav_indels50bp_vcf_gz, pav_indels50bp_vcf_gz_tbi -> "${params.outputDir}${meta.id}/pav" }
+        path { meta, pav_vcf_gz_rid, pav_vcf_gz_tbi_rid -> "${params.outputDir}${meta.id}/asm/${params.runDate}/pav" }
         mode 'copy'
         overwrite false
     }
     'concat_small_variants_pav' {
-        path { meta, out_smallvariants_pav_gz, out_pav_vcf -> "${params.outputDir}${meta.id}/pav" }
+        path { meta, out_smallvariants_pav, out_pav_vcf -> "${params.outputDir}${meta.id}/asm/${params.runDate}/pav" }
         mode 'copy'
         overwrite false
     }
-    'split_sv_pav' {
-        path { meta, pav_SVins_vcf, pav_SVdel_vcf -> "${params.outputDir}${meta.id}/pav" }
+    'annotate_svs_svafotate' {
+        path { meta, vcf_all -> "${params.outputDir}${meta.id}/asm/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }
-    'index_sv_pav' {
-        path { meta, pav_SVins_vcf_gz, pav_SVdel_vcf_gz, pav_svins_vcf_gz_tbi, pav_svdel_vcf_gz_tbi -> "${params.outputDir}${meta.id}/pav" }
+    'filter_svs_svafotate' {
+        path { meta, vcf_rare_unique, vcf_lowfreq -> "${params.outputDir}${meta.id}/asm/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }
     'concat_sv_pav' {
-        path { meta, out_concat_sv_vcf -> "${params.outputDir}${meta.id}/pav" }
+        path { meta, out_concat_sv_vcf -> "${params.outputDir}${meta.id}/asm/${params.runDate}/pav" }
+        mode 'copy'
+        overwrite false
+    }
+    'prioritize_by_svanna_unfiltered' {
+        path { meta, out_pav_svanna_csv, out_pav_svanna_html, out_pav_svanna_vcf_gz -> "${params.outputDir}${meta.id}/asm/${params.runDate}/svanna" }
         mode 'copy'
         overwrite false
     }
     'prioritize_by_svanna' {
-        path { meta, out_pav_svanna_csv -> "${params.outputDir}${meta.id}/svanna" }
+        path { meta, out_pav_svanna_csv, out_pav_svanna_html, out_pav_svanna_vcf_gz -> "${params.outputDir}${meta.id}/asm/${params.runDate}/svanna" }
         mode 'copy'
         overwrite false
     }
     'rscript_process_svanna_result' {
-        path { meta, out_csv -> "${params.outputDir}${meta.id}/svanna" }
+        path { meta, out_csv -> "${params.outputDir}${meta.id}/asm/${params.runDate}/svanna" }
         mode 'copy'
         overwrite false
     }

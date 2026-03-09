@@ -3,6 +3,7 @@
 nextflow.enable.dsl=2
 nextflow.preview.output = true
 
+
 /*
 ========================================================================================
     LRS_READ WORKFLOW
@@ -89,11 +90,11 @@ include { CALL_SVAFOTATE_ANNOTATE;
           CALL_SVAFOTATE_FILTER;
           CALL_SVAFOTATE_FILTER as CALL_SVAFOTATE_FILTER_1;
           CALL_SVAFOTATE_FILTER as CALL_SVAFOTATE_FILTER_2   } from './subworkflow/05_ANNOTATE_SV_SVAFOTATE.nf'
-include { GENERATE_B_ALLELE                   } from './subworkflow/06_GENERATE_BAF_PLOT.nf'
 include { VARIANT_SUMMARY_METRICS_BCFTOOLS;
-          VARIANT_SUMMARY_METRICS_SURVIVOR     } from './subworkflow/07_VARIANT_SUMMARY_METRICS.nf'
+          VARIANT_SUMMARY_METRICS_SURVIVOR     } from './subworkflow/06_VARIANT_SUMMARY_METRICS.nf'
 include { PRIORITIZE_SVS_BY_SVANNA;
-          COMBINE_SVS_BY_SVANNA               } from './subworkflow/08_PRIORITIZE_SV_SVANNA.nf'
+          PRIORITIZE_SVS_BY_SVANNA_FILTERED;
+          COMBINE_SVS_BY_SVANNA               } from './subworkflow/07_PRIORITIZE_SV_SVANNA.nf'
 
 /*
 ========================================================================================
@@ -118,7 +119,6 @@ workflow {
     path_to_ref_trf              = params.ref_trf_path
 
     // B-allele plot
-    b_allele_plot_r              = params.b_allele.b_allele_plot_r
 
     // Delly
     path_to_hg38_excl            = params.delly.hg38_excl_path
@@ -385,7 +385,7 @@ workflow {
     call_svafotate_annotate_Emedgene_vcfs_out = CALL_SVAFOTATE_ANNOTATE(
         refID,
         svafotate_pbsv_input,
-        "Emedgene",
+        "pbsv_Emedgene",
         svafotate_overlap,
         svafotate_bed,
         nThread
@@ -416,7 +416,7 @@ workflow {
     call_svafotate_filter_Emedgene_vcf_out = CALL_SVAFOTATE_FILTER(
         refID,
         call_svafotate_annotate_Emedgene_vcfs_out.svafotate_annotate_out,
-        "Emedgene"
+        "pbsv_Emedgene"
     )
 
     call_svafotate_filter_Sniffles2_vcf_out = CALL_SVAFOTATE_FILTER_1(
@@ -429,17 +429,6 @@ workflow {
         refID,
         call_svafotate_annotate_delly_vcfs_out.svafotate_annotate_out,
         "delly"
-    )
-
-    // ---------------------------------------------------------------------------
-    // 06 B-allele frequency plot
-    // ---------------------------------------------------------------------------
-    ch_generate_b_allele_in = call_cnvs_hificnv_out.hificnv_vcf
-        .join(call_small_variants_bcftools_out.deepvariant2_filt_vcfs)
-    generate_b_allele_out = GENERATE_B_ALLELE(
-        file(b_allele_plot_r),
-        ch_generate_b_allele_in,
-        refID
     )
 
     // ---------------------------------------------------------------------------
@@ -469,10 +458,19 @@ workflow {
         refID
     )
 
+    ch_prioritize_svs_by_svanna_filtered_in = call_svafotate_filter_Emedgene_vcf_out.svafotate_annotate_out
+        .join(call_svafotate_filter_Sniffles2_vcf_out.svafotate_annotate_out)
+        .join(input_check_out.bams)
+
+    prioritize_svs_by_svanna_filtered_out = PRIORITIZE_SVS_BY_SVANNA_FILTERED(
+        ch_prioritize_svs_by_svanna_filtered_in,
+        refID
+    )
+
     combine_svs_by_svanna_out = COMBINE_SVS_BY_SVANNA(
         file(pbsvSniffles2SvannaRScriptPath),
         refID,
-        prioritize_svs_by_svanna_out.csv_files
+        prioritize_svs_by_svanna_filtered_out.csv_files_filtered
     )
 
     /*
@@ -520,7 +518,6 @@ workflow {
     call_paraphase_call_out.paraphase_out                          >> 'call_paraphase_call'
     call_paraphase_call_out.paraphase_vcfs_dir                     >> 'call_paraphase_vcfs_dir'
 
-    generate_b_allele_out.report_pdf                               >> 'generate_b_allele'
 
     variant_summary_metrics_bcftools_out.deepvariant_varmetrics    >> 'variant_summary_metrics_bcftools'
     variant_summary_metrics_survivor_out.pbsv_varmetrics           >> 'variant_summary_metrics_survivor_pbsv'
@@ -528,6 +525,7 @@ workflow {
     variant_summary_metrics_survivor_out.delly_varmetrics          >> 'variant_summary_metrics_survivor_delly'
 
     prioritize_svs_by_svanna_out.csv_files                         >> 'prioritize_svs_by_svanna'
+    prioritize_svs_by_svanna_filtered_out.csv_files_filtered       >> 'prioritize_svs_by_svanna_filtered'
     combine_svs_by_svanna_out.sv_candidates_file                   >> 'combine_svs_by_svanna'
 
     methbat_aligned_bam_out.methbat_bams                           >> 'methbat_aligned_bam'
@@ -550,222 +548,222 @@ workflow {
 
 output {
     'pbmm2_align' {
-        path { meta, out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/pbmm2" }
+        path { meta, out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/pbmm2" }
         mode 'copy'
         overwrite false
     }
     'pbmm2_samtools' {
-        path { meta, bam_file_name, bam_index_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/pbmm2" }
+        path { meta, bam_file_name, bam_index_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/pbmm2" }
         mode 'copy'
         overwrite false
     }
     'quality_metrics_nanoplot' {
-        path { meta, nanoplot_files -> "${params.outputDir}${meta.id}/${params.referenceID}/metrics/bam" }
+        path { meta, nanoplot_files -> "${params.outputDir}${meta.id}/read/${params.runDate}/metrics/bam" }
         mode 'copy'
         overwrite false
     }
     'quality_metrics_samtools' {
-        path { meta, samtools_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/metrics/bam" }
+        path { meta, samtools_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/metrics/bam" }
         mode 'copy'
         overwrite false
     }
     'quality_metrics_getcoverage' {
-        path { meta, meandepth_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/metrics/bam" }
+        path { meta, meandepth_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/metrics/bam" }
         mode 'copy'
         overwrite false
     }
     'call_small_variants_deepvariant1' {
-        path { meta, deepvariant1_vcf_out_file_name, deepvariant1_vcf_tbi_out_file_name, deepvariant1_visual_report_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/deepvariant1" }
+        path { meta, deepvariant1_vcf_out_file_name, deepvariant1_vcf_tbi_out_file_name, deepvariant1_visual_report_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/deepvariant1" }
         mode 'copy'
         overwrite false
     }
     'phase_small_variants_whatshap1' {
-        path { meta, whatshap_vcf_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/whatshap" }
+        path { meta, whatshap_vcf_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/whatshap" }
         mode 'copy'
         overwrite false
     }
     'phase_small_variants_tabix' {
-        path { meta, whatshap_vcf_out_file_name, whatshap_vcf_index_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/whatshap" }
+        path { meta, whatshap_vcf_out_file_name, whatshap_vcf_index_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/whatshap" }
         mode 'copy'
         overwrite false
     }
     'phase_small_variants_whatshap2' {
-        path { meta, whatshap2_bam_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/whatshap" }
+        path { meta, whatshap2_bam_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/whatshap" }
         mode 'copy'
         overwrite false
     }
     'call_small_variants_samtools' {
-        path { meta, whatshap2_bam_out_file_name, whatshap2_bam_bai_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/whatshap" }
+        path { meta, whatshap2_bam_out_file_name, whatshap2_bam_bai_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/whatshap" }
         mode 'copy'
         overwrite false
     }
     'call_small_variants_deepvariant2' {
-        path { meta, deepvariant2_vcf_out_file_name, deepvariant2_vcf_tbi_out_file_name, deepvariant2_g_vcf_out_file_name, deepvariant2_g_vcf_tbi_out_file_name, deepvariant2_visual_report_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/deepvariant2" }
+        path { meta, deepvariant2_vcf_out_file_name, deepvariant2_vcf_tbi_out_file_name, deepvariant2_g_vcf_out_file_name, deepvariant2_g_vcf_tbi_out_file_name, deepvariant2_visual_report_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/deepvariant2" }
         mode 'copy'
         overwrite false
     }
     'call_small_variants_bcftools' {
-        path { meta, deepvariant2_FILT_vcf_out_file_name, deepvariant2_Emedgene_vcf_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/deepvariant2" }
+        path { meta, deepvariant2_FILT_vcf_out_file_name, deepvariant2_Emedgene_vcf_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/deepvariant2" }
         mode 'copy'
         overwrite false
     }
     'call_svs_pbsv_discover' {
-        path { meta, svsig_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/pbsv" }
+        path { meta, svsig_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/pbsv" }
         mode 'copy'
         overwrite false
     }
     'call_svs_pbsv_tabix' {
-        path { meta, svsig_out_file_name, svsig_out_file_name_index -> "${params.outputDir}${meta.id}/${params.referenceID}/pbsv" }
+        path { meta, svsig_out_file_name, svsig_out_file_name_index -> "${params.outputDir}${meta.id}/read/${params.runDate}/pbsv" }
         mode 'copy'
         overwrite false
     }
     'call_svs_pbsv_call' {
-        path { meta, pbsv_vcf_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/pbsv" }
+        path { meta, pbsv_vcf_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/pbsv" }
         mode 'copy'
         overwrite false
     }
     'call_svs_pbsv_bcftools' {
-        path { meta, pbsv_FILT_vcf_out_file_name, pbsv_Emedgene_vcf_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/pbsv" }
+        path { meta, pbsv_FILT_vcf_out_file_name, pbsv_Emedgene_vcf_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/pbsv" }
         mode 'copy'
         overwrite false
     }
     'call_svs_sniffles2_call' {
-        path { meta, sniffles2_vcf_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/sniffles2" }
+        path { meta, sniffles2_vcf_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/sniffles2" }
         mode 'copy'
         overwrite false
     }
     'call_svs_sniffles2_filtering' {
-        path { meta, sniffles2_FILT_vcf_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/sniffles2" }
+        path { meta, sniffles2_FILT_vcf_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/sniffles2" }
         mode 'copy'
         overwrite false
     }
     'call_svs_delly_lr' {
-        path { meta, delly_bcf_out_file_name, delly_bcf_csi_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/delly" }
+        path { meta, delly_bcf_out_file_name, delly_bcf_csi_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/delly" }
         mode 'copy'
         overwrite false
     }
     'call_svs_delly_out_and_filt' {
-        path { meta, delly_vcf_out_file_name, delly_filt_vcf_out_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/delly" }
+        path { meta, delly_vcf_out_file_name, delly_filt_vcf_out_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/delly" }
         mode 'copy'
         overwrite false
     }
     'call_cnvs_hificnv' {
-        path { meta, hificnv_vcf_out_file_name, hificnv_depth_bw_out_file_name, hificnv_depth_copynum_bedgraph_out_file_name, hificnv_log -> "${params.outputDir}${meta.id}/${params.referenceID}/hificnv" }
+        path { meta, hificnv_vcf_out_file_name, hificnv_depth_bw_out_file_name, hificnv_depth_copynum_bedgraph_out_file_name, hificnv_log -> "${params.outputDir}${meta.id}/read/${params.runDate}/hificnv" }
         mode 'copy'
         overwrite false
     }
     'call_trgt_genotype' {
-        path { meta, out_trgt_vcf, out_trgt_bam -> "${params.outputDir}${meta.id}/${params.referenceID}/trgt" }
+        path { meta, out_trgt_vcf, out_trgt_bam -> "${params.outputDir}${meta.id}/read/${params.runDate}/trgt" }
         mode 'copy'
         overwrite false
     }
     'call_trgt_bcftools' {
-        path { meta, out_trgt_vcf_sorted_fileName -> "${params.outputDir}${meta.id}/${params.referenceID}/trgt" }
+        path { meta, out_trgt_vcf_sorted_fileName -> "${params.outputDir}${meta.id}/read/${params.runDate}/trgt" }
         mode 'copy'
         overwrite false
     }
     'call_trgt_tabix' {
-        path { meta, out_trgt_vcf_sorted_fileName, out_trgt_vcf_index_sorted_fileName -> "${params.outputDir}${meta.id}/${params.referenceID}/trgt" }
+        path { meta, out_trgt_vcf_sorted_fileName, out_trgt_vcf_index_sorted_fileName -> "${params.outputDir}${meta.id}/read/${params.runDate}/trgt" }
         mode 'copy'
         overwrite false
     }
     'call_trgt_samtools' {
-        path { meta, out_trgt_bam_sorted_fileName, out_trgt_bam_bai_sorted_fileName -> "${params.outputDir}${meta.id}/${params.referenceID}/trgt" }
+        path { meta, out_trgt_bam_sorted_fileName, out_trgt_bam_bai_sorted_fileName -> "${params.outputDir}${meta.id}/read/${params.runDate}/trgt" }
         mode 'copy'
         overwrite false
     }
     'call_trgt_gatk' {
-        path { meta, out_trgt_vcf_sorted_fileName, out_trgt_vcf_index_sorted_fileName, out_trgt_tsv_sorted_fileName -> "${params.outputDir}${meta.id}/${params.referenceID}/trgt" }
+        path { meta, out_trgt_vcf_sorted_fileName, out_trgt_vcf_index_sorted_fileName, out_trgt_tsv_sorted_fileName -> "${params.outputDir}${meta.id}/read/${params.runDate}/trgt" }
         mode 'copy'
         overwrite false
     }
     'call_trgt_bcftools_final' {
-        path { meta, sorted_tsv_trgt_file_name -> "${params.outputDir}${meta.id}/${params.referenceID}/trgt" }
+        path { meta, sorted_tsv_trgt_file_name -> "${params.outputDir}${meta.id}/read/${params.runDate}/trgt" }
         mode 'copy'
         overwrite false
     }
     'call_paraphase_call' {
-        path { meta, out_paraphase_json, out_paraphase_bam, out_paraphase_bam_bai -> "${params.outputDir}${meta.id}/${params.referenceID}/paraphase" }
+        path { meta, out_paraphase_json, out_paraphase_bam, out_paraphase_bam_bai -> "${params.outputDir}${meta.id}/read/${params.runDate}/paraphase" }
         mode 'copy'
         overwrite false
     }
     'call_paraphase_vcfs_dir' {
-        path { meta, files -> "${params.outputDir}${meta.id}/${params.referenceID}/paraphase/vcfs" }
-        mode 'copy'
-        overwrite false
-    }
-    'generate_b_allele' {
-        path { meta, pdfs -> "${params.outputDir}${meta.id}/${params.referenceID}/b_allele" }
+        path { meta, files -> "${params.outputDir}${meta.id}/read/${params.runDate}/paraphase" }
         mode 'copy'
         overwrite false
     }
     'variant_summary_metrics_bcftools' {
-        path { meta, out_deepvariant_varmetrics_file -> "${params.outputDir}${meta.id}/${params.referenceID}/metrics/vcf" }
+        path { meta, out_deepvariant_varmetrics_file -> "${params.outputDir}${meta.id}/read/${params.runDate}/metrics/vcf" }
         mode 'copy'
         overwrite false
     }
     'variant_summary_metrics_survivor_pbsv' {
-        path { meta, out_pbsv_varmetrics_file, out_pbsv_varmetrics_CHR_file, out_pbsv_varmetrics_support_file -> "${params.outputDir}${meta.id}/${params.referenceID}/metrics/vcf" }
+        path { meta, out_pbsv_varmetrics_file, out_pbsv_varmetrics_CHR_file, out_pbsv_varmetrics_support_file -> "${params.outputDir}${meta.id}/read/${params.runDate}/metrics/vcf" }
         mode 'copy'
         overwrite false
     }
     'variant_summary_metrics_survivor_sniffles2' {
-        path { meta, out_sniffles2_varmetrics_file, out_sniffles2_varmetrics_CHR_file, out_sniffles2_varmetrics_support_file -> "${params.outputDir}${meta.id}/${params.referenceID}/metrics/vcf" }
+        path { meta, out_sniffles2_varmetrics_file, out_sniffles2_varmetrics_CHR_file, out_sniffles2_varmetrics_support_file -> "${params.outputDir}${meta.id}/read/${params.runDate}/metrics/vcf" }
         mode 'copy'
         overwrite false
     }
     'variant_summary_metrics_survivor_delly' {
-        path { meta, out_delly_varmetrics_file, out_delly_varmetrics_CHR_file, out_delly_varmetrics_support_file -> "${params.outputDir}${meta.id}/${params.referenceID}/metrics/vcf" }
+        path { meta, out_delly_varmetrics_file, out_delly_varmetrics_CHR_file, out_delly_varmetrics_support_file -> "${params.outputDir}${meta.id}/read/${params.runDate}/metrics/vcf" }
         mode 'copy'
         overwrite false
     }
     'prioritize_svs_by_svanna' {
-        path { meta, out_pbsv_svanna_file, out_pbsv_svanna_file_html, out_pbsv_svanna_file_vcf_gz, meta1, out_sniffles2_svanna_file, out_sniffles2_svanna_file_html, out_sniffles2_svanna_file_vcf_gz -> "${params.outputDir}${meta.id}/${params.referenceID}/svanna" }
+        path { meta, out_pbsv_svanna_file, out_pbsv_svanna_file_html, out_pbsv_svanna_file_vcf_gz, meta1, out_sniffles2_svanna_file, out_sniffles2_svanna_file_html, out_sniffles2_svanna_file_vcf_gz -> "${params.outputDir}${meta.id}/read/${params.runDate}/svanna" }
+        mode 'copy'
+        overwrite false
+    }
+    'prioritize_svs_by_svanna_filtered' {
+        path { meta, out_pbsv_svanna_file, out_pbsv_svanna_file_html, out_pbsv_svanna_file_vcf_gz, meta1, out_sniffles2_svanna_file, out_sniffles2_svanna_file_html, out_sniffles2_svanna_file_vcf_gz -> "${params.outputDir}${meta.id}/read/${params.runDate}/svanna" }
         mode 'copy'
         overwrite false
     }
     'combine_svs_by_svanna' {
-        path { meta, out_sv_candidates_file -> "${params.outputDir}${meta.id}/${params.referenceID}/svanna" }
+        path { meta, out_sv_candidates_file -> "${params.outputDir}${meta.id}/read/${params.runDate}/svanna" }
         mode 'copy'
         overwrite false
     }
     'methbat_aligned_bam' {
-        path { meta, out_combined_bed, out_combined_bw, out_hap1_bed, out_hap1_bw, out_hap2_bed, out_hap2_bw, out_log, out_prefix_out -> "${params.outputDir}${meta.id}/${params.referenceID}/methbat" }
+        path { meta, out_combined_bed, out_combined_bw, out_hap1_bed, out_hap1_bw, out_hap2_bed, out_hap2_bw, out_log, out_prefix_out -> "${params.outputDir}${meta.id}/read/${params.runDate}/methbat" }
         mode 'copy'
         overwrite false
     }
     'methbat_profile' {
-        path { meta, out_region_profile -> "${params.outputDir}${meta.id}/${params.referenceID}/methbat" }
+        path { meta, out_region_profile -> "${params.outputDir}${meta.id}/read/${params.runDate}/methbat" }
         mode 'copy'
         overwrite false
     }
     'svafotate_Emedgene_vcfs_out' {
-        path { meta, vcf_out -> "${params.outputDir}${meta.id}/${params.referenceID}/svafotate" }
+        path { meta, vcf_out -> "${params.outputDir}${meta.id}/read/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }
     'svafotate_Sniffles2_vcfs_out' {
-        path { meta, vcf_out -> "${params.outputDir}${meta.id}/${params.referenceID}/svafotate" }
+        path { meta, vcf_out -> "${params.outputDir}${meta.id}/read/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }
     'svafotate_delly_vcfs_out' {
-        path { meta, vcf_out -> "${params.outputDir}${meta.id}/${params.referenceID}/svafotate" }
+        path { meta, vcf_out -> "${params.outputDir}${meta.id}/read/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }
     'svafotate_filter_Emedgene_vcfs_out' {
-        path { meta, vcf_out_rare_unique, vcf_out_low_freq -> "${params.outputDir}${meta.id}/${params.referenceID}/svafotate" }
+        path { meta, vcf_out_rare_unique, vcf_out_low_freq -> "${params.outputDir}${meta.id}/read/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }
     'svafotate_filter_Sniffles2_vcfs_out' {
-        path { meta, vcf_out_rare_unique, vcf_out_low_freq -> "${params.outputDir}${meta.id}/${params.referenceID}/svafotate" }
+        path { meta, vcf_out_rare_unique, vcf_out_low_freq -> "${params.outputDir}${meta.id}/read/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }
     'svafotate_filter_delly_vcfs_out' {
-        path { meta, vcf_out_rare_unique, vcf_out_low_freq -> "${params.outputDir}${meta.id}/${params.referenceID}/svafotate" }
+        path { meta, vcf_out_rare_unique, vcf_out_low_freq -> "${params.outputDir}${meta.id}/read/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }

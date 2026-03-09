@@ -101,7 +101,7 @@ process CALL_TRGT_TABIX {
 
 process CALL_TRGT_SAMTOOLS {
     tag "$meta.id"
-    container 'quay.io/biocontainers/samtools:1.19--h50ea8bc_1'
+    container 'quay.io/biocontainers/samtools:1.21--h50ea8bc_0'
 
     input:
     val   refID
@@ -122,7 +122,7 @@ process CALL_TRGT_SAMTOOLS {
 
 process CALL_TRGT_GATK {
     tag "$meta.id"
-    container 'quay.io/biocontainers/gatk4:4.2.6.1--py36hdfd78af_1'
+    container 'quay.io/biocontainers/gatk4:4.6.2.0--py310hdfd78af_1'
 
     input:
     val   refID

@@ -35,7 +35,7 @@
 
 process METHBAT_ALIGNED_BAM {
     tag "$meta.id"
-    container 'quay.io/pacbio/pb-cpg-tools:2.3.2'
+    container 'quay.io/pacbio/pb-cpg-tools:v2.3.2'
     cpus   params.methbat.cpus
     memory params.methbat.mem
 
@@ -61,6 +61,7 @@ process METHBAT_ALIGNED_BAM {
     /usr/local/bin/aligned_bam_to_cpg_scores \\
         --bam $whatshap2_bam_out_file_name \\
         --output-prefix $out_prefix_out \\
+        --model /opt/pb-CpG-tools-v2.3.2-x86_64-unknown-linux-gnu/models/pileup_calling_model.v1.tflite \\
         --threads $nThread
     gunzip ${out_combined_bed}.gz &
     gunzip ${out_hap1_bed}.gz &

@@ -51,7 +51,7 @@ process ASSEMBLY_HIFIASM {
 
 process SAMTOOLS_HIFIASM {
     tag "$meta.id"
-    container 'quay.io/biocontainers/samtools:1.19--h50ea8bc_1'
+    container 'quay.io/biocontainers/samtools:1.21--h50ea8bc_0'
 
     input:
     tuple val(meta), path(assembled_contigs), path(assembled_contigs_gfa), path(assembled_contigs_hap1_gfa), path(assembled_contigs_hap2_gfa)

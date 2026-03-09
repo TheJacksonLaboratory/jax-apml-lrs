@@ -47,7 +47,7 @@ process PBMM2_ALIGN {
         --num-threads $nThread \\
         --sort \\
         --sort-threads ${params.pbmm2.sort_threads} \\
-        --sort-memory 48G \\
+        --sort-memory ${params.pbmm2.sort_memory} \\
         --sample $meta.id \\
         --preset CCS \\
         $reference_file \\
@@ -58,7 +58,7 @@ process PBMM2_ALIGN {
 
 process PBMM2_SAMTOOLS {
     tag "$meta.id"
-    container 'quay.io/biocontainers/samtools:1.19--h50ea8bc_1'
+    container 'quay.io/biocontainers/samtools:1.21--h50ea8bc_0'
 
     input:
     tuple val(meta), path(bam_file_name)

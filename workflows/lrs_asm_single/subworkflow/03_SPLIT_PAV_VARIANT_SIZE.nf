@@ -92,16 +92,14 @@ process CONCAT_SMALL_VARIANTS_PAV {
     val   rID
 
     output:
-    tuple val(meta), path(out_smallvariants_pav_gz), path(out_pav_vcf), emit: out_small_variant_vcf
+    tuple val(meta), path(out_smallvariants_pav), path(out_pav_vcf), emit: out_small_variant_vcf
 
     script:
-    smallvariants_pav        = meta.id + "_hifiasm_" + rID + "_pav_smallvariants.vcf"
-    out_smallvariants_pav_gz = meta.id + "_hifiasm_" + rID + "_pav_smallvariants.vcf.gz"
+    out_smallvariants_pav    = meta.id + "_hifiasm_" + rID + "_pav_smallvariants.vcf"
     out_pav_vcf              = meta.id + "_hifiasm_" + rID + "_pav.vcf"
 
     """
-    bcftools concat -a $pav_snvs_vcf_gz $pav_indels50bp_vcf_gz > $smallvariants_pav
-    gzip $smallvariants_pav
+    bcftools concat -a $pav_snvs_vcf_gz $pav_indels50bp_vcf_gz > $out_smallvariants_pav
     gzip -d $pav_vcf_gz_rid
     """
 }
@@ -161,7 +159,7 @@ process CONCAT_SV_PAV {
     tuple val(meta), path(out_concat_sv_vcf), emit: out_concat_sv_vcf
 
     script:
-    out_concat_sv_vcf = meta.id + "_hifiasm_" + rID + "_pav_SV.vcf"
+    out_concat_sv_vcf = meta.id + "_hifiasm_" + rID + "_pav_SV_Emedgene.vcf"
 
     """
     bcftools concat -a $pav_svins_vcf_gz $pav_svdel_vcf_gz > $out_concat_sv_vcf

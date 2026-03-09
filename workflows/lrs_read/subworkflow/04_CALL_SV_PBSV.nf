@@ -31,7 +31,7 @@
 
 process CALL_SVS_PBSV_DISCOVER {
     tag "$meta.id"
-    container 'quay.io/pacbio/pbsv:2.9.0_build2'
+    container 'quay.io/pacbio/pbsv:2.9.0_1.14_build1'
 
     input:
     path  ref_trf
@@ -73,7 +73,7 @@ process CALL_SVS_PBSV_TABIX {
 
 process CALL_SVS_PBSV_CALL {
     tag "$meta.id"
-    container 'quay.io/pacbio/pbsv:2.9.0_build2'
+    container 'quay.io/pacbio/pbsv:2.9.0_1.14_build1'
     cpus   params.NTHREAD
     memory '64 GB'
 

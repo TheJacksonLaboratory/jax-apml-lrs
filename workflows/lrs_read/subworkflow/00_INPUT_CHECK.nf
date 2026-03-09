@@ -14,7 +14,7 @@
 ========================================================================================
 */
 
-include { SAMPLESHEET_CHECK_READ } from '../../modules/samplesheet_check_read'
+include { SAMPLESHEET_CHECK_READ } from '../../../modules/samplesheet_check_read'
 
 workflow INPUT_CHECK {
 
