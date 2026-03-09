@@ -23,7 +23,7 @@
 ========================================================================================
 */
 
-process 02_QUALITY_METRICS_NANOPLOT {
+process QUALITY_METRICS_NANOPLOT {
     tag "$meta.id"
     container 'staphb/nanoplot:1.42.0'
     cpus params.quality_metrics.cpus
@@ -42,9 +42,9 @@ process 02_QUALITY_METRICS_NANOPLOT {
     """
 }
 
-process 02_QUALITY_METRICS_SAMTOOLS {
+process QUALITY_METRICS_SAMTOOLS {
     tag "$meta.id"
-    container 'quay.io/biocontainers/samtools:1.19--h50ea8bc_1'
+    container 'quay.io/biocontainers/samtools:1.21--h50ea8bc_0'
 
     input:
     tuple val(meta), path(input_bam), path(bam_index_file_name)
@@ -61,9 +61,9 @@ process 02_QUALITY_METRICS_SAMTOOLS {
     """
 }
 
-process 02_QUALITY_METRICS_GETCOVERAGE {
+process QUALITY_METRICS_GETCOVERAGE {
     tag "$meta.id"
-    container 'quay.io/biocontainers/pandas:1.5.3'
+    container 'quay.io/biocontainers/pandas:2.2.1'
 
     input:
     tuple val(meta), path(samtools_out_file_name)

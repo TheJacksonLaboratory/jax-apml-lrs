@@ -42,7 +42,7 @@ process CALL_PARAPHASE_CALL {
     out_paraphase_json  = meta.id + ".paraphase.json"
     out_paraphase_bam   = meta.id + ".paraphase.bam"
     out_paraphase_bam_bai = meta.id + ".paraphase.bam.bai"
-    out_dir             = meta.id + "_paraphase_vcfs/*"
+    out_dir             = meta.id + "_paraphase_vcfs"
     meta1               = meta
 
     """
@@ -56,7 +56,7 @@ process CALL_PARAPHASE_CALL {
 
 process CALL_PARAPHASE_EXTRACT {
     tag "$meta.id"
-    container 'quay.io/biocontainers/r-base:4.3.1'
+    container 'rocker/tidyverse:4.3'
 
     input:
     tuple val(meta), path(input_json_file), path(paraphase_bam_file), path(paraphase_bam_bai_file)

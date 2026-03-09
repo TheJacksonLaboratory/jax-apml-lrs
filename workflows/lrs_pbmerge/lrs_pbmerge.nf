@@ -88,7 +88,7 @@ workflow {
 
 output {
     'pbmerge' {
-        path { meta, out_file_name -> "${params.outputDir}${meta.id}/pbmerge" }
+        path { meta, out_file_name -> "${params.outputDir}${meta.id}/pbmerge/${params.runDate}" }
         mode 'copy'
         overwrite false
     }

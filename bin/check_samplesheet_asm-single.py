@@ -110,11 +110,15 @@ class RowChecker:
         """
         if len(self._seen) != len(self.modified):
             raise AssertionError("Each sample ID must be unique.")
+        counts = Counter()
+        for row in self.modified:
+            counts[row[self._sample_col]] += 1
         seen = Counter()
         for row in self.modified:
             sample = row[self._sample_col]
-            seen[sample] += 1
-            row[self._sample_col] = f"{sample}_T{seen[sample]}"
+            if counts[sample] > 1:
+                seen[sample] += 1
+                row[self._sample_col] = f"{sample}_T{seen[sample]}"
 
 
 def read_head(handle, num_lines=10):

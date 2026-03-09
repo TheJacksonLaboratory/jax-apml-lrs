@@ -20,7 +20,7 @@
 ========================================================================================
 */
 
-include { SAMPLESHEET_CHECK_ASM_SINGLE } from '../../modules/samplesheet_check_asm-single'
+include { SAMPLESHEET_CHECK_ASM_SINGLE } from '../../../modules/samplesheet_check_asm-single'
 
 workflow INPUT_CHECK {
     take:

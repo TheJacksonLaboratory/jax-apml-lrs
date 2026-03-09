@@ -23,7 +23,7 @@
 ========================================================================================
 */
 
-include { SAMPLESHEET_CHECK_ASM_TRIO } from '../../modules/samplesheet_check_asm-trio'
+include { SAMPLESHEET_CHECK_ASM_TRIO } from '../../../modules/samplesheet_check_asm-trio'
 
 workflow INPUT_CHECK {
     take:

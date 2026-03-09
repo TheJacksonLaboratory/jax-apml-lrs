@@ -22,7 +22,7 @@
 ========================================================================================
 */
 
-include { SAMPLESHEET_CHECK_PBMERGE } from '../../modules/samplesheet_check_pbmerge'
+include { SAMPLESHEET_CHECK_PBMERGE } from '../../../modules/samplesheet_check_pbmerge'
 
 workflow INPUT_CHECK {
     take:

@@ -30,7 +30,7 @@
 
 process CALL_SVS_PAV {
     tag "$meta.id"
-    container 'becklab/pav:2.4.0'
+    container 'becklab/pav:2.3.4'
     cpus   params.n_proc
     memory '128 GB'
 
@@ -47,8 +47,8 @@ process CALL_SVS_PAV {
 
     script:
     out_asm_prefix   = meta.id + ".asm"
-    pav_vcf_gz       = meta.id + ".vcf.gz"
-    pav_vcf_gz_tbi   = meta.id + ".vcf.gz.tbi"
+    pav_vcf_gz       = "pav_" + meta.id + ".vcf.gz"
+    pav_vcf_gz_tbi   = "pav_" + meta.id + ".vcf.gz.tbi"
     pav_vcf_gz_rid   = meta.id + "_hifiasm_" + rId + "_pav.vcf.gz"
     pav_vcf_gz_tbi_rid = meta.id + "_hifiasm_" + rId + "_pav.vcf.gz.tbi"
 
@@ -56,7 +56,7 @@ process CALL_SVS_PAV {
     echo '{"reference": "$reference_file"}' > config.json
     echo -e "NAME\\tHAP1\\tHAP2\\n${meta.id}\\t${out_asm_hap1}\\t${out_asm_hap2}" > assemblies.tsv
 
-    /opt/pav/files/docker/run -c $n_proc --nt
+    /opt/pav/files/docker/run -c $n_proc
 
     mv $pav_vcf_gz $pav_vcf_gz_rid
     mv $pav_vcf_gz_tbi $pav_vcf_gz_tbi_rid

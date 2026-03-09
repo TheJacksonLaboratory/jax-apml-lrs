@@ -103,7 +103,7 @@ while [[ $# -gt 0 ]]; do
         -p|--profile)    PROFILE="$2";     shift 2 ;;
         --csv_path)      CSV_PATH="$2";    shift 2 ;;
         --outputDir)     OUTPUT_DIR="$2";  shift 2 ;;
-        -r|--resume)     RESUME='-resume'; shift   ;;
+        -r|--resume)     RESUME="-resume ${2:-}"; [[ -n "${2:-}" && "${2}" != -* ]] && shift; shift   ;;
         -h|--help)       usage; exit 0              ;;
         *)               EXTRA_ARGS+=("$1"); shift  ;;
     esac
@@ -201,10 +201,39 @@ info "============================================================"
 # ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
-"$NEXTFLOW_BIN" run "$WORKFLOW_NF" \
+mkdir -p "${OUTPUT_DIR}"
+
+# Preserve runDate across resumes using a sentinel file
+SENTINEL="${OUTPUT_DIR}/.rundate"
+if [[ -n "$RESUME" && -f "$SENTINEL" ]]; then
+    RUN_DATE=$(cat "$SENTINEL")
+    info "  Resuming run dated: $RUN_DATE"
+else
+    RUN_DATE=$(date +%Y%m%d)
+    echo "$RUN_DATE" > "$SENTINEL"
+fi
+
+# Clear stale Nextflow session locks left by abrupt SLURM kills
+export NXF_OPTS="-Xms2g -Xmx8g"
+"$NEXTFLOW_BIN" -log "${OUTPUT_DIR}.nextflow.${WORKFLOW}.log" run "$WORKFLOW_NF" \
+    -w "${OUTPUT_DIR}work/" \
     -c "$WORKFLOW_CONFIG" \
     -profile "$PROFILE" \
     --csv_path "$CSV_PATH" \
     --outputDir "$OUTPUT_DIR" \
-    $RESUME \
-    "${EXTRA_ARGS[@]}"
+    --runDate "$RUN_DATE" \
+    ${RESUME} \
+    "${EXTRA_ARGS[@]}" || { NXF_EXIT=$?; [[ $NXF_EXIT -eq 2 ]] && true || exit $NXF_EXIT; }
+
+# Post-run publish rescue: copy any unpublished svanna files from work dir
+if grep -q "Execution complete" "${OUTPUT_DIR}.nextflow.${WORKFLOW}.log" 2>/dev/null; then
+    SAMPLE_ID=$(awk -F',' 'NR==2{print $1}' "$CSV_PATH")
+    if [[ "$WORKFLOW" == "lrs_asm_single" || "$WORKFLOW" == "lrs_asm_trio" ]]; then
+        OUT_SVANNA="${OUTPUT_DIR}${SAMPLE_ID}/asm/$(cat "${OUTPUT_DIR}.rundate" 2>/dev/null)/svanna"
+        mkdir -p "$OUT_SVANNA"
+        find "${OUTPUT_DIR}work" \( -name "*_svanna.csv" -o -name "*_svanna.html" -o -name "*_svanna.vcf.gz" \) 2>/dev/null | while read f; do
+            bn=$(basename "$f")
+            [[ ! -f "${OUT_SVANNA}/${bn}" ]] && cp "$f" "${OUT_SVANNA}/${bn}" && echo "Rescued: ${bn}"
+        done
+    fi
+fi

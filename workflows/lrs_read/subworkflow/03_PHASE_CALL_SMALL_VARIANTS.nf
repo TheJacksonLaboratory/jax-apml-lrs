@@ -141,7 +141,7 @@ process PHASE_SMALL_VARIANTS_WHATSHAP2 {
 
 process CALL_SMALL_VARIANTS_SAMTOOLS {
     tag "$meta.id"
-    container 'quay.io/biocontainers/samtools:1.19--h50ea8bc_1'
+    container 'quay.io/biocontainers/samtools:1.21--h50ea8bc_0'
     cpus   params.NTHREAD
     memory '12 GB'
 
