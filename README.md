@@ -1,5 +1,7 @@
 ![JAX-APML-LRS Pipeline](resources/apml-lrs-pipeline.png)
 
+# **JAX-APML-LRS** `jax-internal` is configured for Sumner2
+
 # Overview
 
 **JAX-APML-LRS** was developed for research use by the Advanced Precision Medicine Laboratory (APML) at The Jackson Laboratory (JAX) for Genomic Medicine. 
