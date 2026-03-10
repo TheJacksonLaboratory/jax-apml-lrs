@@ -1,6 +1,6 @@
 ![JAX-APML-LRS Pipeline](resources/apml-lrs-pipeline.png)
 
-# **JAX-APML-LRS** `jax-internal` is configured for Sumner2
+## **JAX-APML-LRS** `jax-internal` is configured for Sumner2
 
 # Overview
 
