@@ -165,14 +165,16 @@ workflow {
         params.svafotate.cpus
     )
 
+    bams_for_svanna = input_check_out.bams.map { meta, proband_fastq, mat_fastq, pat_fastq, HPO -> tuple(meta, proband_fastq, HPO) }
+
     prioritize_by_svanna_unfiltered_out = PRIORITIZE_BY_SVANNA_UNFILTERED(
-        input_check_out.bams,
+        bams_for_svanna,
         concat_sv_pav_out.out_concat_sv_vcf,
         refID
     )
 
     prioritize_by_svanna_out = PRIORITIZE_BY_SVANNA(
-        input_check_out.bams,
+        bams_for_svanna,
         annotate_svs_svafotate_out.svafotate_filter_out,
         refID
     )
@@ -260,12 +262,12 @@ output {
         overwrite false
     }
     'annotate_svs_svafotate' {
-        path { meta, vcf_all -> "${params.outputDir}${meta.id}/asm/${params.runDate}/svafotate" }
+        path { meta, vcf_all -> "${params.outputDir}${meta.id}/asm-trio/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }
     'filter_svs_svafotate' {
-        path { meta, vcf_rare_unique, vcf_lowfreq -> "${params.outputDir}${meta.id}/asm/${params.runDate}/svafotate" }
+        path { meta, vcf_rare_unique, vcf_lowfreq -> "${params.outputDir}${meta.id}/asm-trio/${params.runDate}/svafotate" }
         mode 'copy'
         overwrite false
     }
@@ -275,7 +277,7 @@ output {
         overwrite false
     }
     'prioritize_by_svanna_unfiltered' {
-        path { meta, out_pav_svanna_csv, out_pav_svanna_html, out_pav_svanna_vcf_gz -> "${params.outputDir}${meta.id}/asm/${params.runDate}/svanna" }
+        path { meta, out_pav_svanna_csv, out_pav_svanna_html, out_pav_svanna_vcf_gz -> "${params.outputDir}${meta.id}/asm-trio/${params.runDate}/svanna" }
         mode 'copy'
         overwrite false
     }
